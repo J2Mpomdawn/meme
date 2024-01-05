@@ -4,8 +4,8 @@ import (
 	"meme/model"
 )
 
-var Guilds = map[int]model.Value_GuildId{}
-var Castles = map[int]model.Value_CastleId{}
+var Guilds = map[int]*model.Value_GuildId{}
+var Castles = map[int]*model.Value_CastleId{}
 
 func PackStreamId(current_sub model.Value_StreamId) []byte {
 	return pack_stream_id(0, current_sub)
@@ -30,9 +30,9 @@ func GvgAnalysis(u8arr []byte, current_sub model.Value_StreamId) {
 			}
 
 			if guild.GuildId == 0 {
-				Guilds = map[int]model.Value_GuildId{}
+				Guilds = map[int]*model.Value_GuildId{}
 			} else {
-				Guilds[guild.GuildId] = guild
+				Guilds[guild.GuildId] = &guild
 			}
 		} else {
 			res_castle := unpack_castle(u8arr, offset, stream_id.WorldId)
@@ -44,7 +44,7 @@ func GvgAnalysis(u8arr []byte, current_sub model.Value_StreamId) {
 				continue
 			}
 
-			Castles[stream_id.CastleId-1] = castle
+			Castles[stream_id.CastleId-1] = &castle
 		}
 	}
 }
@@ -81,6 +81,7 @@ func unpack_guild(u8arr []byte, offset int, world int) model.GuildId {
 		Value: model.Value_GuildId{
 			GuildId:   gid*1000 + world%1000,
 			GuildName: str,
+			Changed:   true,
 		},
 		Offset: offset + 5 + len,
 	}
@@ -102,6 +103,7 @@ func unpack_castle(u8arr []byte, offset int, world int) model.CastleId {
 			DefensePartyCount:  def_count,
 			AttackPartyCount:   atk_count,
 			GvgCastleState:     int(state),
+			Changed:            true,
 		},
 		Offset: offset + 20,
 	}

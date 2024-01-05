@@ -2,11 +2,16 @@ package service
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/url"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 
 	"meme/analysis"
 	"meme/model"
@@ -18,15 +23,46 @@ var Buffer = make(chan []byte)
 var ReqFlg = make(chan bool)
 var ExtFlg = make(chan bool)
 var recvErrFlg = false
+var waitStartTime = ""
+var failedGuilds = map[int]model.FailedGuild{}
+var failedGuildsKey = 0
+var failedRecords = map[int]model.FailedRecord{}
+var failedRecordsKey = 0
 
 func SetCurrentSub() {
-	//渡す項目はenvから取得する
+	sc := GetStreamConf()
+
+	country_code := ""
+	switch sc.Country {
+	case "Japan":
+		country_code = "1"
+	case "Korea":
+		country_code = "2"
+	case "Asia":
+		country_code = "3"
+	case "North America":
+		country_code = "4"
+	case "Europe":
+		country_code = "5"
+	case "Global":
+		country_code = "6"
+	}
+
+	world_str := StrJoin(6, "000", sc.World)
+	world_str = world_str[len(world_str)-3:]
+
+	world, _ := strconv.Atoi(StrJoin(4, country_code, world_str))
+	group, _ := strconv.Atoi(sc.Group)
+	class, _ := strconv.Atoi(sc.Class)
+	block, _ := strconv.Atoi(sc.Block)
+	castle, _ := strconv.Atoi(sc.Castle)
+
 	Current_sub = model.Value_StreamId{
-		WorldId:  1099,
-		GroupId:  0,
-		Class:    0,
-		Block:    0,
-		CastleId: 0,
+		WorldId:  world,
+		GroupId:  group,
+		Class:    class,
+		Block:    block,
+		CastleId: castle,
 	}
 }
 
@@ -35,11 +71,17 @@ func GetBuffer() []byte {
 }
 
 func Gvg() {
+	if os.Getenv("API_Domain") == "" {
+		if err := godotenv.Load("dev.env"); err != nil {
+			log.Println(err)
+		}
+	}
+
 	flag.Parse()
 	log.SetFlags(0)
 
 	u := url.URL{Scheme: "wss", Host: *addr, Path: "/gvg"}
-	log.Printf("connecting to %s", u.String())
+	fmt.Printf("connecting to %s", u.String())
 
 	c, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
@@ -47,19 +89,15 @@ func Gvg() {
 	}
 
 	defer func() {
-		log.Println("exit [Gvg]")
+		fmt.Println("exit [Gvg]")
 		c.Close()
 
 		if recvErrFlg {
 			recvErrFlg = false
 
 			go Gvg()
-			b := make([]byte, 4)
-			b[0] = 0
-			b[1] = 0
-			b[2] = 88
-			b[3] = 34
-			Buffer <- b
+
+			Buffer <- GetBuffer()
 			<-ReqFlg
 		}
 	}()
@@ -70,9 +108,137 @@ func Gvg() {
 	wait(c, done)
 }
 
+func RegisterGuild(guilds map[int]*model.Value_GuildId) {
+	query := `
+	insert into guilds (
+		world_id,
+		guild_id,
+		guild_name
+	) values %s
+	on duplicate key update
+		update_date = current_timestamp();
+	`
+
+	values := make([]string, 0, 20)
+	for k, guild := range guilds {
+		if guilds[k].Changed {
+
+			value := `
+			(
+				%d,
+				%d,
+				'%s'
+			)
+			`
+			value = fmt.Sprintf(value,
+				guild.StreamId.WorldId,
+				guild.GuildId,
+				guild.GuildName)
+			values = append(values, value)
+
+			failedGuilds[failedGuildsKey] = model.FailedGuild{
+				WorldId:    guild.StreamId.WorldId,
+				GuildId:    guild.GuildId,
+				GuildName:  guild.GuildName,
+				CreateDate: time.Now(),
+			}
+			failedGuildsKey++
+
+			guilds[k].Changed = false
+		}
+	}
+
+	if len(values) > 0 {
+		query = fmt.Sprintf(query, strings.Join(values, ","))
+		query = strings.Join(strings.Fields(query), " ")
+
+		err := ExecQuery(query)
+
+		if err != nil {
+			LogPrint("red", "exec_query", err)
+		} else {
+			for i := 0; i < len(guilds); i++ {
+				failedGuildsKey--
+				delete(failedGuilds, failedGuildsKey)
+			}
+		}
+	}
+}
+
+func RegisterRecord(castles map[int]*model.Value_CastleId) {
+
+	for k, castle := range castles {
+
+		if castle.StreamId.WorldId == 0 {
+			continue
+		}
+
+		if castles[k].Changed {
+			query := `
+			call registering_record(
+				%d,
+				%d,
+				%d,
+				%d,
+				%d,
+				%d,
+				%d,
+				%d,
+				%d,
+				%d,
+				%d,
+				'%s'
+			);
+			`
+
+			now := time.Now()
+
+			query = fmt.Sprintf(query,
+				castle.StreamId.WorldId,
+				castle.StreamId.GroupId,
+				castle.StreamId.Class,
+				castle.StreamId.Block,
+				castle.StreamId.CastleId,
+				castle.GuildId,
+				castle.AttackerGuildId,
+				castle.UtcFallenTimeStamp,
+				castle.DefensePartyCount,
+				castle.AttackPartyCount,
+				castle.GvgCastleState,
+				now.Format("2006/01/02 15:04:05"))
+
+			query = strings.Join(strings.Fields(query), " ")
+
+			err := ExecQuery(query)
+
+			if err != nil {
+				LogPrint("red", "exec_query", err)
+
+				failedRecords[failedRecordsKey] = model.FailedRecord{
+					WorldId:            castle.StreamId.WorldId,
+					GroupId:            castle.StreamId.GroupId,
+					Class:              castle.StreamId.Class,
+					Block:              castle.StreamId.Block,
+					CastleId:           castle.StreamId.CastleId,
+					GuildId:            castle.GuildId,
+					AttackerGuildId:    castle.AttackerGuildId,
+					UtcFallenTimeStamp: castle.UtcFallenTimeStamp,
+					DefensePartyCount:  castle.DefensePartyCount,
+					AttackPartyCount:   castle.AttackPartyCount,
+					GvgCastleState:     castle.GvgCastleState,
+					CreateDate:         now,
+				}
+				failedGuildsKey++
+			}
+
+			castles[k].Changed = false
+		}
+	}
+}
+
 func recv(c *websocket.Conn, done chan struct{}) {
 	defer func() {
-		log.Println("exit [recv]")
+		fmt.Println("exit [recv]")
 		close(done)
 	}()
 
@@ -80,6 +246,7 @@ func recv(c *websocket.Conn, done chan struct{}) {
 		defer log.Println("exit [recv-for]")
 		for {
 			_, message, err := c.ReadMessage()
+
 			if err != nil {
 				log.Println("read:", err)
 
@@ -90,6 +257,8 @@ func recv(c *websocket.Conn, done chan struct{}) {
 			analysis.GvgAnalysis(message, Current_sub)
 			RegisterGuild(analysis.Guilds)
 			RegisterRecord(analysis.Castles)
+
+			waitStartTime = time.Now().Format("2006/01/02 15:04:05")
 		}
 	}()
 	<-ExtFlg
@@ -108,12 +277,12 @@ func wait(c *websocket.Conn, done chan struct{}) {
 	 */
 	ticker := time.NewTicker(50 * time.Second)
 	defer ticker.Stop()
-	defer log.Println("exit [wait]")
+	defer fmt.Println("exit [wait]")
 
 	for {
 		select {
 		case <-done:
-			log.Println("done")
+			fmt.Println("done")
 			return
 		case b := <-Buffer:
 			w, err := c.NextWriter(websocket.BinaryMessage)
@@ -127,7 +296,7 @@ func wait(c *websocket.Conn, done chan struct{}) {
 				return
 			}
 
-			log.Println(b)
+			fmt.Println(b)
 			ReqFlg <- false
 		case <-ticker.C:
 			err := c.WriteMessage(websocket.PingMessage, nil)
@@ -135,7 +304,7 @@ func wait(c *websocket.Conn, done chan struct{}) {
 				log.Println("write t:", err)
 				return
 			}
-			log.Println("tic")
+			fmt.Printf("\r%s -> %s", waitStartTime, time.Now().Format("2006/01/02 15:04:05"))
 		}
 	}
 }

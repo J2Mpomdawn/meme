@@ -1,2 +1,7 @@
 dev.env
 pro.env
+fly.toml
+tree.txt
+*.png
+.dockerignore
+test.html

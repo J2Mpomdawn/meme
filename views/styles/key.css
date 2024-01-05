@@ -1,0 +1,34 @@
+@charset "utf-8";
+
+body,
+#entry {
+    background-color: black;
+    border: none;
+    outline: none;
+    color: #00ff00;
+    font-size: large;
+}
+
+.terminal-output-current::after,
+#terminal-input-current::after {
+    content: ">";
+}
+
+#entry {
+    padding: 0;
+    margin: 0;
+    width: 90%;
+}
+
+.terminal-output-count,
+.terminal-output-nocount {
+    margin-bottom: 0.5em;
+}
+
+.terminal-output-nocount {
+    margin-top: -0.5em;
+}
+
+#header {
+    font-size: calc(1vw * 1.24);
+}

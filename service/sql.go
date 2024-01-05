@@ -1,108 +1,61 @@
 package service
 
-import (
-	"fmt"
-	"log"
-	"strings"
+// test if sql works
+func SqlTest() {
+	query := `show tables`
+	err := ExecQuery(query)
 
-	"meme/model"
-)
-
-func RegisterGuild(guilds map[int]model.Value_GuildId) {
-	query := `
-	insert into guilds (
-		world_id,
-		guild_id,
-		guild_name
-	) values %s
-	on duplicate key update
-		update_date = current_timestamp();
-	`
-
-	values := make([]string, 0, 20)
-	for _, guild := range guilds {
-		value := `
-		(
-			%d,
-			%d,
-			'%s'
-		)
-		`
-		value = fmt.Sprintf(value,
-			guild.StreamId.WorldId,
-			guild.GuildId,
-			guild.GuildName)
-		values = append(values, value)
-	}
-	query = fmt.Sprintf(query, strings.Join(values, ","))
-	query = strings.Join(strings.Fields(query), " ")
-
-	exec_qery(query)
-}
-
-func RegisterRecord(castles map[int]model.Value_CastleId) {
-	query := `
-	insert into gvg_records (
-		world_id,
-		group_id,
-		class,
-		block,
-		castle_id,
-		def_guild_id,
-		atk_guild_id,
-		utc_fallen_time_stamp,
-		def_count,
-		atk_count,
-		state
-	) values %s
-	on duplicate key update
-		update_date = current_timestamp();
-	`
-
-	values := make([]string, 0, 20)
-	for _, castle := range castles {
-		if castle.StreamId.WorldId == 0 {
-			continue
-		}
-
-		value := `
-		(
-			%d,
-			%d,
-			%d,
-			%d,
-			%d,
-			%d,
-			%d,
-			%d,
-			%d,
-			%d,
-			%d
-		)
-		`
-		value = fmt.Sprintf(value,
-			castle.StreamId.WorldId,
-			castle.StreamId.GroupId,
-			castle.StreamId.Class,
-			castle.StreamId.Block,
-			castle.StreamId.CastleId,
-			castle.GuildId,
-			castle.AttackerGuildId,
-			castle.UtcFallenTimeStamp,
-			castle.DefensePartyCount,
-			castle.AttackPartyCount,
-			castle.GvgCastleState)
-		values = append(values, value)
-	}
-	query = fmt.Sprintf(query, strings.Join(values, ","))
-	query = strings.Join(strings.Fields(query), " ")
-
-	exec_qery(query)
-}
-
-func exec_qery(query string) {
-	_, err := DbEngine.Exec(query)
 	if err != nil {
-		log.Println(err)
+		LogPrint("red", "exec_query", err)
 	}
+}
+
+func SelectTest() {
+	res, err := SelectQuery("select * from guilds limit 3")
+
+	if err != nil {
+		LogPrint("red", "SelectTest", err)
+	}
+
+	FmtPrint("", res)
+}
+
+func Select(args *[]string) {
+	//
+	query := StrJoin_2(512, "select", *args...)
+
+	res, err := SelectQuery(query)
+
+	if err != nil {
+		LogPrint("red", "Select", err)
+		FmtPrint("red", query)
+	}
+
+	/*
+		guild_id404400524099guild_name引きちぎられたヒレcreate_date2023-12-12T16:17:03+09:00update_date2023-12-12T23:20:00+09:00world_id1099
+		create_date2023-12-12T16:17:03+09:00update_date2023-12-24T07:40:03+09:00world_id1099guild_id768981549099guild_nameカルデア
+	*/
+	for _, records := range res {
+		for col, row := range records {
+			FmtPrint("blue", col)
+			FmtPrint("green", string(row))
+		}
+		FmtPrint("", "\n")
+	}
+}
+
+// Query Execution Core
+func ExecQuery(query string) error {
+	//query exection
+	_, err := DbEngine.Exec(query)
+
+	return err
+}
+
+// Select Execution Core
+func SelectQuery(query string) ([]map[string][]byte, error) {
+	//select exection
+	res, err := DbEngine.Query(query)
+
+	return res, err
 }
