@@ -13,6 +13,11 @@ import (
 
 // get streaming configuration
 func GetStreamConf() model.StreamConf {
+	//if already acquired
+	if StreamConf.Country != "" {
+		return StreamConf
+	}
+
 	//create DynamoDB client
 	svc := new_svc()
 
@@ -31,17 +36,18 @@ func GetStreamConf() model.StreamConf {
 	}
 
 	return model.StreamConf{
-		Country: *res.Item["gvg_country"].S,
+		Country: *res.Item["gvg_country"].N,
 		World:   *res.Item["gvg_world"].N,
 		Group:   *res.Item["gvg_group"].N,
 		Class:   *res.Item["gvg_class"].N,
 		Block:   *res.Item["gvg_block"].N,
 		Castle:  *res.Item["gvg_castle"].N,
+		Status:  *res.Item["status"].BOOL,
 	}
 }
 
 // set streaming configuration
-func SetStreamConf(country string, world int, group int, class int, block int, castle int) error {
+func SetStreamConf(country int, world int, group int, class int, block int, castle int, status bool) error {
 	//create DynamoDB client
 	svc := new_svc()
 
@@ -53,7 +59,7 @@ func SetStreamConf(country string, world int, group int, class int, block int, c
 				S: aws.String(os.Getenv("AWS_Memo")),
 			},
 			"gvg_country": {
-				S: aws.String(country),
+				N: aws.String(strconv.Itoa(country)),
 			},
 			"gvg_world": {
 				N: aws.String(strconv.Itoa(world)),
@@ -70,8 +76,21 @@ func SetStreamConf(country string, world int, group int, class int, block int, c
 			"gvg_castle": {
 				N: aws.String(strconv.Itoa(castle)),
 			},
+			"status": {
+				BOOL: aws.Bool(status),
+			},
 		},
 	})
+
+	StreamConf = model.StreamConf{
+		Country: strconv.Itoa(country),
+		World:   strconv.Itoa(world),
+		Group:   strconv.Itoa(group),
+		Class:   strconv.Itoa(class),
+		Block:   strconv.Itoa(block),
+		Castle:  strconv.Itoa(castle),
+		Status:  status,
+	}
 
 	return err
 }
