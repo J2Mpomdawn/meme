@@ -30,19 +30,20 @@ var failedRecordsKey = 0
 var WsGuild = make(chan model.FailedGuild)
 var WsRecord = make(chan model.FailedRecord)
 var WsFlg = false
+var StreamConf model.StreamConf
 
 func SetCurrentSub() {
-	sc := GetStreamConf()
+	StreamConf = GetStreamConf()
 
-	country_code := strconv.Itoa(get_country_code(sc.Country))
+	country_code := StreamConf.Country
 
-	world_str := StrJoin(6, "000", sc.World)
+	world_str := StrJoin(6, "000", StreamConf.World)
 	world_str = world_str[len(world_str)-3:]
 
-	group, _ := strconv.Atoi(sc.Group)
-	class, _ := strconv.Atoi(sc.Class)
-	block, _ := strconv.Atoi(sc.Block)
-	castle, _ := strconv.Atoi(sc.Castle)
+	group, _ := strconv.Atoi(StreamConf.Group)
+	class, _ := strconv.Atoi(StreamConf.Class)
+	block, _ := strconv.Atoi(StreamConf.Block)
+	castle, _ := strconv.Atoi(StreamConf.Castle)
 
 	if group != 0 && class != 0 {
 		country_code = "0"
@@ -59,7 +60,7 @@ func SetCurrentSub() {
 	}
 }
 
-func get_country_code(country_name string) int {
+func GetCountryCode(country_name string) int {
 	country_code := 0
 	switch country_name {
 	case "Japan":

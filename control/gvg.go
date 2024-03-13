@@ -65,11 +65,50 @@ func GvgStream(c *gin.Context) {
 		//send stream_id to start streaming
 		service.Buffer <- service.GetBuffer()
 		<-service.ReqFlg
+
+		//
+		var err error
+		country, err := strconv.Atoi(service.StreamConf.Country)
+		if err != nil {
+			service.LogPrintln("red", "Atoi", err)
+		}
+
+		world, err := strconv.Atoi(service.StreamConf.World)
+		if err != nil {
+			service.LogPrintln("red", "Atoi", err)
+		}
+
+		group, err := strconv.Atoi(service.StreamConf.Group)
+		if err != nil {
+			service.LogPrintln("red", "Atoi", err)
+		}
+
+		class, err := strconv.Atoi(service.StreamConf.Class)
+		if err != nil {
+			service.LogPrintln("red", "Atoi", err)
+		}
+
+		block, err := strconv.Atoi(service.StreamConf.Block)
+		if err != nil {
+			service.LogPrintln("red", "Atoi", err)
+		}
+
+		castle, err := strconv.Atoi(service.StreamConf.Castle)
+		if err != nil {
+			service.LogPrintln("red", "Atoi", err)
+		}
+
+		err = service.SetStreamConf(country, world, group, class, block, castle, true)
+
+		if err != nil {
+			service.LogPrintln("red", "SetStreamConf", err)
+		}
+
 		service.FmtPrintln("blue", "start streaming")
 
 		res = gin.H{
 			"start": [...]string{
-				service.StrJoin(22, "country: ", service.GetCountryName(service.Current_sub.WorldId)),
+				service.StrJoin(22, "country: ", service.GetCountryName(service.Current_sub.WorldId/1000)),
 				service.StrJoin(22, "world: ", strconv.Itoa(service.Current_sub.WorldId)),
 			},
 		}
@@ -124,24 +163,32 @@ func check_stream(args []string) gin.H {
 	//get from dynamoDb
 	sc := service.GetStreamConf()
 
+	country, err := strconv.Atoi(sc.Country)
+
+	if err != nil {
+		service.LogPrintln("red", "Atoi", err)
+	}
+
 	return gin.H{
-		"Country": sc.Country,
+		"Country": service.GetCountryName(country),
 		"World":   sc.World,
 		"Group":   sc.Group,
 		"Class":   sc.Class,
 		"Block":   sc.Block,
 		"Castle":  sc.Castle,
+		"Status":  sc.Status,
 	}
 }
 
 // set stream_id
 func set_stream(args []string) gin.H {
-	country := "Japan"
+	country := 1
 	world := 1
 	group := 0
 	class := 0
 	block := 0
 	castle := 0
+	status := false
 	var err error
 
 	//check options
@@ -152,7 +199,9 @@ func set_stream(args []string) gin.H {
 		case "--country":
 			if i < len(args)-1 {
 				if args[i+1][0] != 45 {
-					country = args[i+1]
+					if len(args[i+1]) != 1 {
+						country = service.GetCountryCode(args[i+1])
+					}
 				}
 			}
 		case "--world":
@@ -205,6 +254,16 @@ func set_stream(args []string) gin.H {
 					}
 				}
 			}
+		case "--status":
+			if i < len(args)-1 {
+				if args[i+1][0] != 45 {
+					status, err = strconv.ParseBool(args[i+1])
+
+					if err != nil {
+						service.LogPrintln("red", "Atoi", err)
+					}
+				}
+			}
 		default:
 			//invalid option
 
@@ -216,6 +275,7 @@ func set_stream(args []string) gin.H {
 				"--Class",
 				"--Block",
 				"--Castle",
+				"--Status",
 			}
 
 			//presenting the maybe
@@ -233,18 +293,19 @@ func set_stream(args []string) gin.H {
 	}
 
 	//update dynamoDb
-	err = service.SetStreamConf(country, world, group, class, block, castle)
+	err = service.SetStreamConf(country, world, group, class, block, castle, status)
 
 	if err != nil {
 		service.LogPrintln("red", "SetStreamConf", err)
 	}
 
 	return gin.H{
-		"Country": country,
+		"Country": service.GetCountryName(country),
 		"World":   world,
 		"Group":   group,
 		"Class":   class,
 		"Block":   block,
 		"Castle":  castle,
+		"Status":  status,
 	}
 }

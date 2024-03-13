@@ -76,4 +76,5 @@ type StreamConf struct {
 	Class   string
 	Block   string
 	Castle  string
+	Status  bool
 }
