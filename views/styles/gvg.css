@@ -1,0 +1,172 @@
+@charset "utf-8";
+
+p {
+    margin: 0.2em;
+}
+
+.castle {
+    background-image: url(/public/views/images/icon/Castle_0_1.png);
+    background-size: 90%;
+    aspect-ratio: 1;
+    background-repeat: no-repeat;
+    width: 7%;
+    position: absolute;
+}
+
+.church {
+    background-image: url(/public/views/images/icon/Castle_0_0.png);
+    background-size: 99%;
+    aspect-ratio: 1;
+    background-repeat: no-repeat;
+    width: 7%;
+    position: absolute;
+}
+
+.temple {
+    background-image: url(/public/views/images/icon/Castle_0_2.png);
+    background-size: 97%;
+    aspect-ratio: 1;
+    background-repeat: no-repeat;
+    width: 7%;
+    position: absolute;
+}
+
+#body {
+    display: flex;
+}
+
+#gvg {
+    background-color: chartreuse;
+    flex: 1;
+}
+
+#left-side {
+    background-color: brown;
+    margin-right: 1em;
+}
+
+#loc1 {
+    left: 47%;
+    top: 40.4%;
+}
+
+#loc2 {
+    left: 63%;
+    top: 37%;
+}
+
+#loc3 {
+    left: 54%;
+    top: 51%;
+}
+
+#loc4 {
+    left: 30%;
+    top: 50%;
+}
+
+#loc5 {
+    left: 33%;
+    top: 30%;
+}
+
+#loc6 {
+    left: 52%;
+    top: 25%;
+}
+
+#loc7 {
+    left: 74%;
+    top: 18%;
+}
+
+#loc8 {
+    left: 85%;
+    top: 28%;
+}
+
+#loc9 {
+    left: 82%;
+    top: 43%;
+}
+
+#loc10 {
+    left: 70%;
+    top: 51%;
+}
+
+#loc11 {
+    left: 60%;
+    top: 10%;
+}
+
+#loc12 {
+    left: 61%;
+    top: 65%;
+}
+
+#loc13 {
+    left: 56%;
+    top: 81%;
+}
+
+#loc14 {
+    left: 47%;
+    top: 72%;
+}
+
+#loc15 {
+    left: 40%;
+    top: 59%;
+}
+
+#loc16 {
+    left: 31%;
+    top: 74%;
+}
+
+#loc17 {
+    left: 17%;
+    top: 54%;
+}
+
+#loc18 {
+    left: 12%;
+    top: 39%;
+}
+
+#loc19 {
+    left: 17%;
+    top: 26%;
+}
+
+#loc20 {
+    left: 26%;
+    top: 14%;
+}
+
+#loc21 {
+    left: 41%;
+    top: 10%;
+}
+
+#main {
+    background-color: blueviolet;
+    display: flex;
+    flex: 1;
+}
+
+#pages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#viewer {
+    aspect-ratio: 1;
+    background-image: url(../images/icon/localgvg.png);
+    background-size: cover;
+    margin: 0 auto;
+    position: relative;
+    width: 90%;
+}

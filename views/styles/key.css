@@ -1,0 +1,40 @@
+@charset "utf-8";
+
+body,
+#entry {
+    background-color: black;
+    border: none;
+    outline: none;
+    color: #00ff00;
+    font-size: large;
+}
+
+.terminal-output-count,
+.terminal-output-nocount {
+    margin-bottom: 0.5em;
+}
+
+.terminal-output-current::after,
+#terminal-input-current::after {
+    content: ">";
+}
+
+.terminal-output-nocount {
+    margin-top: -0.5em;
+}
+
+.terminal-sql-table {
+    font-size: 0.66em;
+}
+
+#entry {
+    padding: 0;
+    margin: 0;
+    width: 90%;
+}
+
+#terminal-output-str-width {
+    font-size: 0.66em;
+    position: absolute;
+    visibility: hidden;
+}
