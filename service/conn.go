@@ -47,7 +47,7 @@ func Connect() {
 		SSHPermission()
 
 		//You will be able to connect in about 5 minutes after registration.
-		time.Sleep(6 * time.Minute)
+		time.Sleep(5 * time.Minute)
 
 		//connection retry
 		SshClient, err = newSSH(sshConf)

@@ -10,6 +10,16 @@ import (
 	"meme/service"
 )
 
+// processing of GET request for grand battle page
+func Ggvg(c *gin.Context) {
+	path, _ := c.Get("FullPath")
+
+	c.HTML(http.StatusOK, "ggvg.html.tmpl", gin.H{
+		"Path":   path,
+		"Region": "ggvg",
+	})
+}
+
 // processing of GET request for guild battle page
 func Gvg(c *gin.Context) {
 	path, _ := c.Get("FullPath")
@@ -59,14 +69,14 @@ func GvgStream(c *gin.Context) {
 		service.FmtPrintln("blue", "set current stream_id")
 
 		//open websocket
-		go service.Gvg_cp()
+		go service.Gvg()
 		service.FmtPrintln("blue", "open websocket")
 
 		//send stream_id to start streaming
 		service.Buffer <- service.GetBuffer()
 		<-service.ReqFlg
 
-		//
+		//change StreamConf to streaming
 		var err error
 		country, err := strconv.Atoi(service.StreamConf.Country)
 		if err != nil {
@@ -180,6 +190,21 @@ func check_stream(args []string) gin.H {
 	}
 }
 
+// handling invalid option
+func invalid_option(reserved_words []string, arg string) gin.H {
+	//presenting the maybe
+	appearance_count := service.AppearanceCount(arg, reserved_words...)
+	pl := service.SortMapValue_StrInt(appearance_count)
+	i := len(reserved_words) - 1
+
+	service.FmtPrintln("bluee", service.StrJoin(128, "\"", arg, "\"", " is not a valid argument\nmaybe: \"", pl[i].Key, "\""))
+
+	return gin.H{
+		service.StrJoin(64, "\"", arg, "\"", " is not a valid argument"): "",
+		service.StrJoin(64, "maybe: \"", pl[i].Key, "\""):                "",
+	}
+}
+
 // set stream_id
 func set_stream(args []string) gin.H {
 	country := 1
@@ -194,20 +219,38 @@ func set_stream(args []string) gin.H {
 	//check options
 	service.FmtPrintln("blue", "check options")
 	for i, arg := range args {
+		val := args[i+1]
+
 		//put into the corresponding variable
 		switch arg {
 		case "--country":
 			if i < len(args)-1 {
-				if args[i+1][0] != 45 {
-					if len(args[i+1]) != 1 {
-						country = service.GetCountryCode(args[i+1])
+				if val[0] != 45 {
+					if len(val) != 1 {
+						//get country code
+						country = service.GetCountryCode(val)
+
+						//if country name is wrong
+						if country == 0 {
+							//reserved words
+							reserved_words := []string{
+								"Japan",
+								"Korea",
+								"Asia",
+								"North America",
+								"Europe",
+								"Global",
+							}
+
+							return invalid_option(reserved_words, val)
+						}
 					}
 				}
 			}
 		case "--world":
 			if i < len(args)-1 {
-				if args[i+1][0] != 45 {
-					world, err = strconv.Atoi(args[i+1])
+				if val[0] != 45 {
+					world, err = strconv.Atoi(val)
 
 					if err != nil {
 						service.LogPrintln("red", "Atoi", err)
@@ -216,8 +259,8 @@ func set_stream(args []string) gin.H {
 			}
 		case "--group":
 			if i < len(args)-1 {
-				if args[i+1][0] != 45 {
-					group, err = strconv.Atoi(args[i+1])
+				if val[0] != 45 {
+					group, err = strconv.Atoi(val)
 
 					if err != nil {
 						service.LogPrintln("red", "Atoi", err)
@@ -226,8 +269,8 @@ func set_stream(args []string) gin.H {
 			}
 		case "--class":
 			if i < len(args)-1 {
-				if args[i+1][0] != 45 {
-					class, err = strconv.Atoi(args[i+1])
+				if val[0] != 45 {
+					class, err = strconv.Atoi(val)
 
 					if err != nil {
 						service.LogPrintln("red", "Atoi", err)
@@ -236,8 +279,8 @@ func set_stream(args []string) gin.H {
 			}
 		case "--block":
 			if i < len(args)-1 {
-				if args[i+1][0] != 45 {
-					block, err = strconv.Atoi(args[i+1])
+				if val[0] != 45 {
+					block, err = strconv.Atoi(val)
 
 					if err != nil {
 						service.LogPrintln("red", "Atoi", err)
@@ -246,8 +289,8 @@ func set_stream(args []string) gin.H {
 			}
 		case "--castle":
 			if i < len(args)-1 {
-				if args[i+1][0] != 45 {
-					castle, err = strconv.Atoi(args[i+1])
+				if val[0] != 45 {
+					castle, err = strconv.Atoi(val)
 
 					if err != nil {
 						service.LogPrintln("red", "Atoi", err)
@@ -256,8 +299,8 @@ func set_stream(args []string) gin.H {
 			}
 		case "--status":
 			if i < len(args)-1 {
-				if args[i+1][0] != 45 {
-					status, err = strconv.ParseBool(args[i+1])
+				if val[0] != 45 {
+					status, err = strconv.ParseBool(val)
 
 					if err != nil {
 						service.LogPrintln("red", "Atoi", err)
@@ -278,17 +321,7 @@ func set_stream(args []string) gin.H {
 				"--Status",
 			}
 
-			//presenting the maybe
-			appearance_count := service.AppearanceCount(arg, reserved_words...)
-			pl := service.SortMapValue_StrInt(appearance_count)
-			i := len(reserved_words) - 1
-
-			service.FmtPrintln("bluee", service.StrJoin(64, "\"", arg, "\"", " is not a valid argument\nmaybe: \"", pl[i].Key, "\""))
-
-			return gin.H{
-				service.StrJoin(32, "\"", arg, "\"", " is not a valid argument"): "",
-				service.StrJoin(32, "maybe: \"", pl[i].Key, "\""):                "",
-			}
+			return invalid_option(reserved_words, arg)
 		}
 	}
 
