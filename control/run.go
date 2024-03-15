@@ -67,6 +67,11 @@ func Run(resources embed.FS) {
 
 				gvg.POST("tran", GvgTranRegist)
 			}
+
+			ggvg := meme.Group("ggvg")
+			{
+				ggvg.GET("", Ggvg)
+			}
 		}
 
 		mst := index.Group(os.Getenv("Master"))
